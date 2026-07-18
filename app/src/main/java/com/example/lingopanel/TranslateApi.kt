@@ -10,14 +10,25 @@ import java.net.URLEncoder
 
 object TranslateApi {
 
+    // Server publik resmi libretranslate.com sekarang wajib API key berbayar,
+    // jadi kita pakai mirror komunitas yang masih gratis tanpa API key.
+    private const val BASE_URL = "https://translate.terraprint.co"
+
+    private fun readErrorBody(conn: HttpURLConnection): String {
+        return try {
+            conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
     /**
-     * Deteksi bahasa dari teks memakai endpoint publik LibreTranslate.
-     * Endpoint publik ini gratis tapi ada rate limit — kalau gagal,
-     * fungsi ini melempar exception dan pemanggil sebaiknya fallback
-     * ke bahasa default (misal "en").
+     * Deteksi bahasa dari teks memakai endpoint publik LibreTranslate (mirror gratis).
+     * Ada rate limit — kalau gagal, fungsi ini melempar exception dan pemanggil
+     * sebaiknya fallback ke bahasa default (misal "en").
      */
     suspend fun detectLanguage(text: String): String = withContext(Dispatchers.IO) {
-        val url = URL("https://libretranslate.com/detect")
+        val url = URL("$BASE_URL/detect")
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
         conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
@@ -30,7 +41,8 @@ object TranslateApi {
 
         val code = conn.responseCode
         if (code !in 200..299) {
-            throw RuntimeException("Deteksi bahasa gagal (HTTP $code)")
+            val err = readErrorBody(conn)
+            throw RuntimeException("Deteksi bahasa gagal (HTTP $code) $err")
         }
 
         val response = conn.inputStream.bufferedReader().use { it.readText() }
@@ -40,14 +52,13 @@ object TranslateApi {
     }
 
     /**
-     * Terjemahkan teks memakai endpoint publik LibreTranslate.
-     * Endpoint publik ini gratis tapi ada rate limit — kalau gagal,
-     * fungsi ini melempar exception dan pemanggil sebaiknya menampilkan
-     * pesan error ke pengguna.
+     * Terjemahkan teks memakai endpoint publik LibreTranslate (mirror gratis).
+     * Ada rate limit — kalau gagal, fungsi ini melempar exception dan pemanggil
+     * sebaiknya menampilkan pesan error ke pengguna.
      */
     suspend fun translate(text: String, source: String, target: String): String =
         withContext(Dispatchers.IO) {
-            val url = URL("https://libretranslate.com/translate")
+            val url = URL("$BASE_URL/translate")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
@@ -66,7 +77,8 @@ object TranslateApi {
 
             val code = conn.responseCode
             if (code !in 200..299) {
-                throw RuntimeException("Terjemahan gagal (HTTP $code)")
+                val err = readErrorBody(conn)
+                throw RuntimeException("Terjemahan gagal (HTTP $code) $err")
             }
 
             val response = conn.inputStream.bufferedReader().use { it.readText() }
