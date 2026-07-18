@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/panel_bg"
+    android:padding="14dp"
+    android:animateLayoutChanges="true">
+
+    <!-- Header (drag handle) -->
+    <LinearLayout
+        android:id="@+id/panelHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="10dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="LINGO PANEL"
+            android:textColor="@color/text_light"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/btnClose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕"
+            android:textColor="@color/text_muted"
+            android:textSize="16sp"
+            android:padding="4dp" />
+    </LinearLayout>
+
+    <!-- Tabs -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="10dp">
+
+        <Button
+            android:id="@+id/tabTranslate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TRANSLATE"
+            android:textSize="10sp"
+            android:backgroundTint="@color/rose"
+            android:textColor="@color/text_light" />
+
+        <Button
+            android:id="@+id/tabBooster"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="FPS BOOSTER"
+            android:textSize="10sp"
+            android:backgroundTint="@color/panel_dark"
+            android:textColor="@color/text_muted" />
+    </LinearLayout>
+
+    <!-- Translate section -->
+    <LinearLayout
+        android:id="@+id/sectionTranslate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="6dp">
+
+            <AutoCompleteTextView
+                android:id="@+id/acSource"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:hint="Cari bahasa..."
+                android:inputType="text"
+                android:background="@drawable/input_bg"
+                android:padding="8dp"
+                android:textColor="@color/text_light"
+                android:textColorHint="@color/text_muted"
+                android:textSize="12sp"
+                android:completionThreshold="1" />
+
+            <AutoCompleteTextView
+                android:id="@+id/acTarget"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:hint="Cari bahasa..."
+                android:inputType="text"
+                android:background="@drawable/input_bg"
+                android:padding="8dp"
+                android:textColor="@color/text_light"
+                android:textColorHint="@color/text_muted"
+                android:textSize="12sp"
+                android:completionThreshold="1" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvDetected"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            android:layout_marginBottom="6dp"
+            android:text="" />
+
+        <EditText
+            android:id="@+id/etInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="2"
+            android:gravity="top"
+            android:background="@drawable/input_bg"
+            android:padding="8dp"
+            android:textColor="@color/text_light"
+            android:textColorHint="@color/text_muted"
+            android:hint="Tulis teks di sini..."
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnTranslate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Terjemahkan"
+            android:backgroundTint="@color/rose"
+            android:textColor="@color/text_light"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvOutput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:background="@drawable/input_bg"
+            android:padding="8dp"
+            android:textColor="@color/text_light"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- FPS booster section -->
+    <LinearLayout
+        android:id="@+id/sectionBooster"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <CheckBox
+            android:id="@+id/cbBg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tutup Aplikasi Background"
+            android:textColor="@color/text_light"
+            android:checked="true" />
+
+        <CheckBox
+            android:id="@+id/cbRam"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bersihkan RAM"
+            android:textColor="@color/text_light"
+            android:checked="true" />
+
+        <CheckBox
+            android:id="@+id/cbNotif"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bisukan Notifikasi"
+            android:textColor="@color/text_light" />
+
+        <Button
+            android:id="@+id/btnBoost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Aktifkan Boost"
+            android:backgroundTint="@color/rose"
+            android:textColor="@color/text_light"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Simulasi tampilan saja — tidak mengubah performa perangkat sungguhan."
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnMatikanPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MATIKAN PANEL"
+        android:textSize="11sp"
+        android:backgroundTint="@color/panel_dark"
+        android:textColor="@color/rose"
+        android:layout_marginTop="10dp" />
+
+</LinearLayout>
