@@ -147,12 +147,15 @@ class OverlayService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType(),
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            // Sengaja TANPA FLAG_NOT_FOCUSABLE: panel ini punya EditText/AutoCompleteTextView
+            // yang butuh fokus supaya keyboard bawaan bisa muncul.
+            0,
             PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.TOP or Gravity.START
         params.x = 20
         params.y = 200
+        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         panelParams = params
 
         setupPanel(view)
@@ -174,6 +177,37 @@ class OverlayService : Service() {
         val sectionTranslate = view.findViewById<View>(R.id.sectionTranslate)
         val sectionBooster = view.findViewById<View>(R.id.sectionBooster)
         val btnBoost = view.findViewById<Button>(R.id.btnBoost)
+        val panelHeader = view.findViewById<View>(R.id.panelHeader)
+
+        // Bikin panel bisa digeser lewat header-nya (mirip cara bubble digeser)
+        run {
+            var startX = 0
+            var startY = 0
+            var touchStartX = 0f
+            var touchStartY = 0f
+
+            panelHeader.setOnTouchListener { _, event ->
+                val currentParams = panelParams ?: return@setOnTouchListener false
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = currentParams.x
+                        startY = currentParams.y
+                        touchStartX = event.rawX
+                        touchStartY = event.rawY
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = (event.rawX - touchStartX).toInt()
+                        val dy = (event.rawY - touchStartY).toInt()
+                        currentParams.x = startX + dx
+                        currentParams.y = startY + dy
+                        windowManager.updateViewLayout(view, currentParams)
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }
 
         val sourceAdapter = ArrayAdapter(
             this, android.R.layout.simple_dropdown_item_1line,
@@ -201,14 +235,26 @@ class OverlayService : Service() {
 
         btnMatikan.setOnClickListener { stopSelf() }
 
-        tabTranslate.setOnClickListener {
-            sectionTranslate.visibility = View.VISIBLE
-            sectionBooster.visibility = View.GONE
+        fun setActiveTab(isTranslate: Boolean) {
+            sectionTranslate.visibility = if (isTranslate) View.VISIBLE else View.GONE
+            sectionBooster.visibility = if (isTranslate) View.GONE else View.VISIBLE
+
+            val activeColor = resources.getColor(R.color.rose, theme)
+            val inactiveColor = resources.getColor(R.color.panel_dark, theme)
+            val activeText = resources.getColor(R.color.text_light, theme)
+            val inactiveText = resources.getColor(R.color.text_muted, theme)
+
+            tabTranslate.backgroundTintList =
+                android.content.res.ColorStateList.valueOf(if (isTranslate) activeColor else inactiveColor)
+            tabTranslate.setTextColor(if (isTranslate) activeText else inactiveText)
+
+            tabBooster.backgroundTintList =
+                android.content.res.ColorStateList.valueOf(if (isTranslate) inactiveColor else activeColor)
+            tabBooster.setTextColor(if (isTranslate) inactiveText else activeText)
         }
-        tabBooster.setOnClickListener {
-            sectionTranslate.visibility = View.GONE
-            sectionBooster.visibility = View.VISIBLE
-        }
+
+        tabTranslate.setOnClickListener { setActiveTab(true) }
+        tabBooster.setOnClickListener { setActiveTab(false) }
 
         btnBoost.setOnClickListener {
             val active = btnBoost.text == "Aktifkan Boost"
