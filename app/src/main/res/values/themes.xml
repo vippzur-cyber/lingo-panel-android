@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.LingoPanel" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/rose</item>
+        <item name="colorPrimaryDark">@color/rose_dark</item>
+        <item name="android:windowBackground">@color/bg_dark</item>
+    </style>
+</resources>
