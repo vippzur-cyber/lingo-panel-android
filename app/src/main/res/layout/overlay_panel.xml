@@ -4,10 +4,12 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/panel_bg"
-    android:padding="14dp">
+    android:padding="14dp"
+    android:animateLayoutChanges="true">
 
-    <!-- Header -->
+    <!-- Header (drag handle) -->
     <LinearLayout
+        android:id="@+id/panelHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
