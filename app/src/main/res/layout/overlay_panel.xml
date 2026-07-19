@@ -67,7 +67,7 @@
     <!-- Konten tab: tinggi tetap + bisa discroll biar ukuran panel konsisten -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="290dp"
+        android:layout_height="340dp"
         android:scrollbars="vertical"
         android:fillViewport="false">
 
@@ -124,7 +124,7 @@
             android:id="@+id/etInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minLines="2"
+            android:minLines="4"
             android:gravity="top"
             android:background="@drawable/input_bg"
             android:padding="8dp"
@@ -187,7 +187,7 @@
             android:id="@+id/tvOutput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="90dp"
             android:background="@drawable/input_bg"
             android:padding="8dp"
             android:textColor="@color/text_light"
