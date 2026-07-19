@@ -172,15 +172,76 @@ class OverlayService : Service() {
         val pbLoading = view.findViewById<android.widget.ProgressBar>(R.id.pbLoading)
         val btnCopy = view.findViewById<TextView>(R.id.btnCopy)
         val btnClose = view.findViewById<TextView>(R.id.btnClose)
+        val btnZoomOut = view.findViewById<TextView>(R.id.btnZoomOut)
+        val btnZoomIn = view.findViewById<TextView>(R.id.btnZoomIn)
         val btnMatikan = view.findViewById<Button>(R.id.btnMatikanPanel)
         val tabTranslate = view.findViewById<Button>(R.id.tabTranslate)
         val tabBooster = view.findViewById<Button>(R.id.tabBooster)
         val sectionTranslate = view.findViewById<View>(R.id.sectionTranslate)
         val sectionBooster = view.findViewById<View>(R.id.sectionBooster)
         val btnBoost = view.findViewById<Button>(R.id.btnBoost)
+        val cbBg = view.findViewById<android.widget.CheckBox>(R.id.cbBg)
+        val cbRam = view.findViewById<android.widget.CheckBox>(R.id.cbRam)
+        val cbNotif = view.findViewById<android.widget.CheckBox>(R.id.cbNotif)
         val panelHeader = view.findViewById<View>(R.id.panelHeader)
 
+        // ---------- Save preferensi (SharedPreferences) ----------
+        val prefs = getSharedPreferences("lingo_panel_prefs", MODE_PRIVATE)
+
+        cbBg.isChecked = prefs.getBoolean("cb_bg", true)
+        cbRam.isChecked = prefs.getBoolean("cb_ram", true)
+        cbNotif.isChecked = prefs.getBoolean("cb_notif", false)
+
+        fun savePrefs() {
+            prefs.edit()
+                .putBoolean("cb_bg", cbBg.isChecked)
+                .putBoolean("cb_ram", cbRam.isChecked)
+                .putBoolean("cb_notif", cbNotif.isChecked)
+                .putString("last_source", acSource.text.toString())
+                .putString("last_target", acTarget.text.toString())
+                .apply()
+        }
+
+        cbBg.setOnCheckedChangeListener { _, _ -> savePrefs() }
+        cbRam.setOnCheckedChangeListener { _, _ -> savePrefs() }
+        cbNotif.setOnCheckedChangeListener { _, _ -> savePrefs() }
+
         // Bikin panel bisa digeser lewat header-nya (mirip cara bubble digeser)
+        // Zoom panel: skala tampilan + ukuran window ikut menyesuaikan biar area sentuh pas
+        var zoomLevel = 1.0f
+        var baseWidthPx = 0
+        var baseHeightPx = 0
+
+        view.post {
+            if (baseWidthPx == 0) baseWidthPx = view.width
+            if (baseHeightPx == 0) baseHeightPx = view.height
+        }
+
+        fun applyZoom() {
+            val currentParams = panelParams ?: return
+            if (baseWidthPx == 0) baseWidthPx = view.width
+            if (baseHeightPx == 0) baseHeightPx = view.height
+
+            view.pivotX = 0f
+            view.pivotY = 0f
+            view.scaleX = zoomLevel
+            view.scaleY = zoomLevel
+
+            currentParams.width = (baseWidthPx * zoomLevel).toInt()
+            currentParams.height = (baseHeightPx * zoomLevel).toInt()
+            windowManager.updateViewLayout(view, currentParams)
+        }
+
+        btnZoomOut.setOnClickListener {
+            zoomLevel = (zoomLevel - 0.1f).coerceAtLeast(0.7f)
+            applyZoom()
+        }
+
+        btnZoomIn.setOnClickListener {
+            zoomLevel = (zoomLevel + 0.1f).coerceAtMost(1.5f)
+            applyZoom()
+        }
+
         run {
             var startX = 0
             var startY = 0
@@ -221,9 +282,15 @@ class OverlayService : Service() {
         acSource.setAdapter(sourceAdapter)
         acTarget.setAdapter(targetAdapter)
 
-        // Default: sumber "Indonesia", target "Inggris"
-        acSource.setText(Languages.SOURCE_OPTIONS.first { it.code == "id" }.label, false)
-        acTarget.setText(Languages.TARGET_OPTIONS.first { it.code == "en" }.label, false)
+        // Default: pakai bahasa terakhir yang disimpan, kalau belum ada pakai Indonesia -> Inggris
+        val savedSource = prefs.getString("last_source", null)
+        val savedTarget = prefs.getString("last_target", null)
+        acSource.setText(
+            savedSource ?: Languages.SOURCE_OPTIONS.first { it.code == "id" }.label, false
+        )
+        acTarget.setText(
+            savedTarget ?: Languages.TARGET_OPTIONS.first { it.code == "en" }.label, false
+        )
 
         // Buka daftar lagi begitu field difokus/diketik, biar bisa langsung search
         acSource.setOnClickListener { acSource.showDropDown() }
@@ -258,8 +325,38 @@ class OverlayService : Service() {
         tabBooster.setOnClickListener { setActiveTab(false) }
 
         btnBoost.setOnClickListener {
-            val active = btnBoost.text == "Aktifkan Boost"
-            btnBoost.text = if (active) "Matikan Boost" else "Aktifkan Boost"
+            val hasUsageAccess = hasUsageAccessPermission()
+            if (!hasUsageAccess) {
+                android.widget.Toast.makeText(
+                    this,
+                    "Butuh izin \"Akses Penggunaan\" dulu. Membuka Settings...",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+                val intent = Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(intent)
+                return@setOnClickListener
+            }
+
+            var killedCount = 0
+            val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+
+            if (cbBg.isChecked) {
+                killedCount = closeBackgroundApps(am)
+            }
+            if (cbRam.isChecked) {
+                System.gc()
+            }
+            if (cbNotif.isChecked) {
+                val nm = getSystemService(NotificationManager::class.java)
+                nm.cancelAll()
+            }
+
+            android.widget.Toast.makeText(
+                this,
+                "Boost dijalankan. $killedCount proses background ditutup.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
 
         btnCopy.setOnClickListener {
@@ -284,6 +381,8 @@ class OverlayService : Service() {
                 return@setOnClickListener
             }
 
+            savePrefs()
+
             btnTranslate.isEnabled = false
             btnTranslate.text = "Menerjemahkan..."
             pbLoading.visibility = View.VISIBLE
@@ -301,6 +400,57 @@ class OverlayService : Service() {
                 }
             }
         }
+    }
+
+    private fun hasUsageAccessPermission(): Boolean {
+        val appOps = getSystemService(APP_OPS_SERVICE) as android.app.AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(), packageName
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(), packageName
+            )
+        }
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
+    /**
+     * Nutup proses background app lain yang baru dipakai (via UsageStats),
+     * pakai ActivityManager.killBackgroundProcesses. Ini permintaan resmi ke sistem,
+     * bukan simulasi -- tapi Android modern sendiri sudah mengelola memori dengan
+     * efisien, jadi efeknya bisa saja kecil/tidak terasa untuk performa game.
+     */
+    private fun closeBackgroundApps(am: android.app.ActivityManager): Int {
+        val usm = getSystemService(USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
+        val end = System.currentTimeMillis()
+        val start = end - 1000 * 60 * 60 * 6 // 6 jam terakhir
+        val stats = usm.queryUsageStats(
+            android.app.usage.UsageStatsManager.INTERVAL_BEST, start, end
+        ) ?: return 0
+
+        val ownPackage = packageName
+        val skip = setOf(
+            ownPackage,
+            "android", "com.android.systemui", "com.android.settings"
+        )
+
+        var count = 0
+        for (stat in stats) {
+            val pkg = stat.packageName
+            if (pkg in skip) continue
+            try {
+                am.killBackgroundProcesses(pkg)
+                count++
+            } catch (e: Exception) {
+                // Sebagian paket sistem tidak boleh ditutup, wajar dan aman diabaikan
+            }
+        }
+        return count
     }
 
     override fun onDestroy() {
