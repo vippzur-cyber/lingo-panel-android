@@ -10,13 +10,12 @@ import java.net.URLEncoder
 
 object TranslateApi {
 
-    // Server publik resmi libretranslate.com sekarang wajib API key berbayar,
-    // jadi kita pakai beberapa mirror komunitas gratis sebagai fallback.
-    // Kalau satu server down/error, otomatis coba server berikutnya di daftar ini.
-    private val BASE_URLS = listOf(
-        "https://translate.terraprint.co",
-        "https://libretranslate.de",
-        "https://lt.vern.cc"
+    // Server publik resmi libretranslate.com sekarang wajib API key berbayar.
+    // Ini daftar mirror LibreTranslate gratis (dari docs.libretranslate.com/community/mirrors)
+    // yang dicoba satu-satu sampai ada yang merespons.
+    private val LIBRE_BASE_URLS = listOf(
+        "https://translate.fedilab.app",
+        "https://translate.cutie.dating"
     )
 
     private fun readErrorBody(conn: HttpURLConnection): String {
@@ -27,13 +26,9 @@ object TranslateApi {
         }
     }
 
-    /**
-     * Deteksi bahasa dari teks. Coba tiap server di BASE_URLS satu-satu
-     * sampai ada yang berhasil; kalau semua gagal, lempar exception terakhir.
-     */
     suspend fun detectLanguage(text: String): String = withContext(Dispatchers.IO) {
         var lastError: Exception? = null
-        for (base in BASE_URLS) {
+        for (base in LIBRE_BASE_URLS) {
             try {
                 val url = URL("$base/detect")
                 val conn = url.openConnection() as HttpURLConnection
@@ -47,9 +42,7 @@ object TranslateApi {
                 conn.outputStream.use { it.write(body.toByteArray()) }
 
                 val code = conn.responseCode
-                if (code !in 200..299) {
-                    throw RuntimeException("HTTP $code dari $base")
-                }
+                if (code !in 200..299) throw RuntimeException("HTTP $code dari $base")
 
                 val response = conn.inputStream.bufferedReader().use { it.readText() }
                 val arr = JSONArray(response)
@@ -57,20 +50,21 @@ object TranslateApi {
                 return@withContext arr.getJSONObject(0).getString("language")
             } catch (e: Exception) {
                 lastError = e
-                // lanjut coba server berikutnya
             }
         }
-        throw lastError ?: RuntimeException("Deteksi bahasa gagal, semua server tidak merespons")
+        throw lastError ?: RuntimeException("Deteksi bahasa gagal")
     }
 
     /**
-     * Terjemahkan teks. Coba tiap server di BASE_URLS satu-satu
-     * sampai ada yang berhasil; kalau semua gagal, lempar exception terakhir.
+     * Terjemahkan teks. Urutan coba: mirror-mirror LibreTranslate dulu,
+     * kalau semuanya down baru fallback ke MyMemory (penyedia lain, gratis,
+     * tanpa API key) supaya user tetap dapat hasil terjemahan.
      */
     suspend fun translate(text: String, source: String, target: String): String =
         withContext(Dispatchers.IO) {
             var lastError: Exception? = null
-            for (base in BASE_URLS) {
+
+            for (base in LIBRE_BASE_URLS) {
                 try {
                     val url = URL("$base/translate")
                     val conn = url.openConnection() as HttpURLConnection
@@ -91,8 +85,7 @@ object TranslateApi {
 
                     val code = conn.responseCode
                     if (code !in 200..299) {
-                        val err = readErrorBody(conn)
-                        throw RuntimeException("HTTP $code dari $base: $err")
+                        throw RuntimeException("HTTP $code dari $base: ${readErrorBody(conn)}")
                     }
 
                     val response = conn.inputStream.bufferedReader().use { it.readText() }
@@ -100,9 +93,33 @@ object TranslateApi {
                     return@withContext json.getString("translatedText")
                 } catch (e: Exception) {
                     lastError = e
-                    // lanjut coba server berikutnya
                 }
             }
+
+            // Fallback terakhir: MyMemory (gratis, tanpa API key, penyedia berbeda)
+            try {
+                return@withContext translateViaMyMemory(text, source, target)
+            } catch (e: Exception) {
+                lastError = e
+            }
+
             throw lastError ?: RuntimeException("Terjemahan gagal, semua server tidak merespons")
         }
+
+    private fun translateViaMyMemory(text: String, source: String, target: String): String {
+        val q = URLEncoder.encode(text, "UTF-8")
+        val langpair = URLEncoder.encode("$source|$target", "UTF-8")
+        val url = URL("https://api.mymemory.translated.net/get?q=$q&langpair=$langpair")
+        val conn = url.openConnection() as HttpURLConnection
+        conn.requestMethod = "GET"
+        conn.connectTimeout = 8000
+        conn.readTimeout = 8000
+
+        val code = conn.responseCode
+        if (code !in 200..299) throw RuntimeException("HTTP $code dari MyMemory")
+
+        val response = conn.inputStream.bufferedReader().use { it.readText() }
+        val json = JSONObject(response)
+        return json.getJSONObject("responseData").getString("translatedText")
+    }
 }
