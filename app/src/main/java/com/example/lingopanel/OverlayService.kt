@@ -1,12 +1,16 @@
 package com.example.lingopanel
 
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -17,11 +21,14 @@ import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -172,13 +179,16 @@ class OverlayService : Service() {
         val pbLoading = view.findViewById<android.widget.ProgressBar>(R.id.pbLoading)
         val btnCopy = view.findViewById<TextView>(R.id.btnCopy)
         val btnClose = view.findViewById<TextView>(R.id.btnClose)
-        val btnZoomOut = view.findViewById<TextView>(R.id.btnZoomOut)
-        val btnZoomIn = view.findViewById<TextView>(R.id.btnZoomIn)
+        val tvHasilLabel = view.findViewById<TextView>(R.id.tvHasilLabel)
         val btnMatikan = view.findViewById<Button>(R.id.btnMatikanPanel)
         val tabTranslate = view.findViewById<Button>(R.id.tabTranslate)
         val tabBooster = view.findViewById<Button>(R.id.tabBooster)
+        val tabTools = view.findViewById<Button>(R.id.tabTools)
+        val tabSystem = view.findViewById<Button>(R.id.tabSystem)
         val sectionTranslate = view.findViewById<View>(R.id.sectionTranslate)
         val sectionBooster = view.findViewById<View>(R.id.sectionBooster)
+        val sectionTools = view.findViewById<View>(R.id.sectionTools)
+        val sectionSystem = view.findViewById<View>(R.id.sectionSystem)
         val btnBoost = view.findViewById<Button>(R.id.btnBoost)
         val cbBg = view.findViewById<android.widget.CheckBox>(R.id.cbBg)
         val cbRam = view.findViewById<android.widget.CheckBox>(R.id.cbRam)
@@ -207,41 +217,6 @@ class OverlayService : Service() {
         cbNotif.setOnCheckedChangeListener { _, _ -> savePrefs() }
 
         // Bikin panel bisa digeser lewat header-nya (mirip cara bubble digeser)
-        // Zoom panel: skala tampilan + ukuran window ikut menyesuaikan biar area sentuh pas
-        var zoomLevel = 1.0f
-        var baseWidthPx = 0
-        var baseHeightPx = 0
-
-        view.post {
-            if (baseWidthPx == 0) baseWidthPx = view.width
-            if (baseHeightPx == 0) baseHeightPx = view.height
-        }
-
-        fun applyZoom() {
-            val currentParams = panelParams ?: return
-            if (baseWidthPx == 0) baseWidthPx = view.width
-            if (baseHeightPx == 0) baseHeightPx = view.height
-
-            view.pivotX = 0f
-            view.pivotY = 0f
-            view.scaleX = zoomLevel
-            view.scaleY = zoomLevel
-
-            currentParams.width = (baseWidthPx * zoomLevel).toInt()
-            currentParams.height = (baseHeightPx * zoomLevel).toInt()
-            windowManager.updateViewLayout(view, currentParams)
-        }
-
-        btnZoomOut.setOnClickListener {
-            zoomLevel = (zoomLevel - 0.1f).coerceAtLeast(0.7f)
-            applyZoom()
-        }
-
-        btnZoomIn.setOnClickListener {
-            zoomLevel = (zoomLevel + 0.1f).coerceAtMost(1.5f)
-            applyZoom()
-        }
-
         run {
             var startX = 0
             var startY = 0
@@ -271,14 +246,29 @@ class OverlayService : Service() {
             }
         }
 
-        val sourceAdapter = ArrayAdapter(
-            this, android.R.layout.simple_dropdown_item_1line,
-            Languages.SOURCE_OPTIONS.map { it.label }
-        )
-        val targetAdapter = ArrayAdapter(
-            this, android.R.layout.simple_dropdown_item_1line,
-            Languages.TARGET_OPTIONS.map { it.label }
-        )
+        // Adapter khusus: SELALU nampilin daftar lengkap, ga peduli ada teks apa
+        // di kolomnya. Jadi pas dipencet langsung muncul semua pilihan, bukan
+        // hasil filter dari ketikan.
+        class FullListAdapter(items: List<String>) :
+            ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, items) {
+            private val full = items
+            override fun getFilter(): android.widget.Filter {
+                return object : android.widget.Filter() {
+                    override fun performFiltering(constraint: CharSequence?): FilterResults {
+                        val r = FilterResults()
+                        r.values = full
+                        r.count = full.size
+                        return r
+                    }
+                    override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                        notifyDataSetChanged()
+                    }
+                }
+            }
+        }
+
+        val sourceAdapter = FullListAdapter(Languages.SOURCE_OPTIONS.map { it.label })
+        val targetAdapter = FullListAdapter(Languages.TARGET_OPTIONS.map { it.label })
         acSource.setAdapter(sourceAdapter)
         acTarget.setAdapter(targetAdapter)
 
@@ -292,7 +282,12 @@ class OverlayService : Service() {
             savedTarget ?: Languages.TARGET_OPTIONS.first { it.code == "en" }.label, false
         )
 
-        // Buka daftar lagi begitu field difokus/diketik, biar bisa langsung search
+        // Matikan keyboard & mode ketik: field ini cuma buat dipencet lalu pilih dari list
+        acSource.keyListener = null
+        acTarget.keyListener = null
+        acSource.showSoftInputOnFocus = false
+        acTarget.showSoftInputOnFocus = false
+
         acSource.setOnClickListener { acSource.showDropDown() }
         acTarget.setOnClickListener { acTarget.showDropDown() }
 
@@ -303,26 +298,33 @@ class OverlayService : Service() {
 
         btnMatikan.setOnClickListener { stopSelf() }
 
-        fun setActiveTab(isTranslate: Boolean) {
-            sectionTranslate.visibility = if (isTranslate) View.VISIBLE else View.GONE
-            sectionBooster.visibility = if (isTranslate) View.GONE else View.VISIBLE
+        fun setActiveTab(activeIndex: Int) {
+            sectionTranslate.visibility = if (activeIndex == 0) View.VISIBLE else View.GONE
+            sectionBooster.visibility = if (activeIndex == 1) View.VISIBLE else View.GONE
+            sectionTools.visibility = if (activeIndex == 2) View.VISIBLE else View.GONE
+            sectionSystem.visibility = if (activeIndex == 3) View.VISIBLE else View.GONE
 
             val activeColor = resources.getColor(R.color.rose, theme)
             val inactiveColor = resources.getColor(R.color.panel_dark, theme)
             val activeText = resources.getColor(R.color.text_light, theme)
             val inactiveText = resources.getColor(R.color.text_muted, theme)
 
-            tabTranslate.backgroundTintList =
-                android.content.res.ColorStateList.valueOf(if (isTranslate) activeColor else inactiveColor)
-            tabTranslate.setTextColor(if (isTranslate) activeText else inactiveText)
-
-            tabBooster.backgroundTintList =
-                android.content.res.ColorStateList.valueOf(if (isTranslate) inactiveColor else activeColor)
-            tabBooster.setTextColor(if (isTranslate) inactiveText else activeText)
+            val tabs = listOf(tabTranslate, tabBooster, tabTools, tabSystem)
+            tabs.forEachIndexed { i, tab ->
+                val isActive = i == activeIndex
+                tab.backgroundTintList =
+                    android.content.res.ColorStateList.valueOf(if (isActive) activeColor else inactiveColor)
+                tab.setTextColor(if (isActive) activeText else inactiveText)
+            }
         }
 
-        tabTranslate.setOnClickListener { setActiveTab(true) }
-        tabBooster.setOnClickListener { setActiveTab(false) }
+        tabTranslate.setOnClickListener { setActiveTab(0) }
+        tabBooster.setOnClickListener { setActiveTab(1) }
+        tabTools.setOnClickListener { setActiveTab(2) }
+        tabSystem.setOnClickListener { setActiveTab(3) }
+
+        setupTools(view, prefs)
+        setupSystem(view)
 
         btnBoost.setOnClickListener {
             val hasUsageAccess = hasUsageAccessPermission()
@@ -402,6 +404,426 @@ class OverlayService : Service() {
         }
     }
 
+    // ---------- Tools tab: 5 utilitas ringan ----------
+
+    private var stopwatchJob: Job? = null
+    private var stopwatchSeconds = 0
+    private var stopwatchRunning = false
+
+    private fun setupTools(view: View, prefs: android.content.SharedPreferences) {
+        // --- 1) Stopwatch ---
+        val tvStopwatch = view.findViewById<TextView>(R.id.tvStopwatch)
+        val btnStopwatchToggle = view.findViewById<Button>(R.id.btnStopwatchToggle)
+        val btnStopwatchReset = view.findViewById<Button>(R.id.btnStopwatchReset)
+
+        fun formatStopwatch(total: Int): String {
+            val h = total / 3600
+            val m = (total % 3600) / 60
+            val s = total % 60
+            return "%02d:%02d:%02d".format(h, m, s)
+        }
+        tvStopwatch.text = formatStopwatch(stopwatchSeconds)
+        btnStopwatchToggle.text = if (stopwatchRunning) "Jeda" else "Mulai"
+
+        fun startStopwatch() {
+            stopwatchRunning = true
+            btnStopwatchToggle.text = "Jeda"
+            stopwatchJob?.cancel()
+            stopwatchJob = scope.launch {
+                while (isActive) {
+                    delay(1000)
+                    stopwatchSeconds++
+                    tvStopwatch.text = formatStopwatch(stopwatchSeconds)
+                }
+            }
+        }
+
+        btnStopwatchToggle.setOnClickListener {
+            if (stopwatchRunning) {
+                stopwatchRunning = false
+                stopwatchJob?.cancel()
+                btnStopwatchToggle.text = "Mulai"
+            } else {
+                startStopwatch()
+            }
+        }
+        btnStopwatchReset.setOnClickListener {
+            stopwatchRunning = false
+            stopwatchJob?.cancel()
+            stopwatchSeconds = 0
+            tvStopwatch.text = formatStopwatch(0)
+            btnStopwatchToggle.text = "Mulai"
+        }
+        if (stopwatchRunning) startStopwatch()
+
+        // --- 2) Quick Notes (auto-save ke SharedPreferences) ---
+        val etNotes = view.findViewById<EditText>(R.id.etNotes)
+        etNotes.setText(prefs.getString("quick_notes", ""))
+        etNotes.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                prefs.edit().putString("quick_notes", s?.toString() ?: "").apply()
+            }
+        })
+
+        // --- 3) Kalkulator mini (parser +,-,*,/ tanpa library eksternal) ---
+        val etCalc = view.findViewById<EditText>(R.id.etCalc)
+        val tvCalcResult = view.findViewById<TextView>(R.id.tvCalcResult)
+        etCalc.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val expr = s?.toString().orEmpty()
+                val result = evalSimpleExpression(expr)
+                tvCalcResult.text = if (result != null) "= ${trimZero(result)}" else "= ?"
+            }
+        })
+
+        // --- 4) Reminder (AlarmManager, tetap jalan walau app ditutup) ---
+        val etReminderText = view.findViewById<EditText>(R.id.etReminderText)
+        val etReminderMinutes = view.findViewById<EditText>(R.id.etReminderMinutes)
+        val btnSetReminder = view.findViewById<Button>(R.id.btnSetReminder)
+
+        btnSetReminder.setOnClickListener {
+            val text = etReminderText.text.toString().trim()
+            val minutes = etReminderMinutes.text.toString().toIntOrNull()
+            if (text.isEmpty() || minutes == null || minutes <= 0) {
+                android.widget.Toast.makeText(this, "Isi teks & menit yang valid dulu", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val triggerAt = System.currentTimeMillis() + minutes * 60_000L
+            val reqCode = System.currentTimeMillis().toInt()
+
+            val intent = Intent(this, ReminderReceiver::class.java).apply {
+                putExtra("reminder_text", text)
+                putExtra("req_code", reqCode)
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                this, reqCode, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val am = getSystemService(ALARM_SERVICE) as AlarmManager
+            am.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+
+            android.widget.Toast.makeText(this, "Reminder dipasang $minutes menit lagi", android.widget.Toast.LENGTH_SHORT).show()
+            etReminderText.setText("")
+            etReminderMinutes.setText("")
+        }
+
+        // --- 5) Clipboard Manager (simpan manual, karena Android modern
+        //          nggak izinkan baca clipboard otomatis di background) ---
+        val clipboardList = view.findViewById<LinearLayout>(R.id.clipboardList)
+        val btnClipboardSave = view.findViewById<Button>(R.id.btnClipboardSave)
+        val btnClipboardClear = view.findViewById<Button>(R.id.btnClipboardClear)
+
+        fun loadClipboardItems(): MutableList<String> {
+            val raw = prefs.getString("clipboard_items", "") ?: ""
+            return if (raw.isEmpty()) mutableListOf() else raw.split("\u0001").toMutableList()
+        }
+        fun saveClipboardItems(items: List<String>) {
+            prefs.edit().putString("clipboard_items", items.joinToString("\u0001")).apply()
+        }
+
+        fun renderClipboardList() {
+            clipboardList.removeAllViews()
+            val items = loadClipboardItems()
+            for (item in items.asReversed()) {
+                val row = TextView(this).apply {
+                    text = item
+                    textSize = 12f
+                    setTextColor(resources.getColor(R.color.text_light, theme))
+                    setBackgroundResource(R.drawable.input_bg)
+                    setPadding(8, 8, 8, 8)
+                    val lp = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    lp.bottomMargin = 6
+                    layoutParams = lp
+                    setOnClickListener {
+                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Clipboard item", item))
+                        android.widget.Toast.makeText(this@OverlayService, "Disalin", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+                clipboardList.addView(row)
+            }
+        }
+        renderClipboardList()
+
+        btnClipboardSave.setOnClickListener {
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = clipboard.primaryClip
+            if (clip != null && clip.itemCount > 0) {
+                val text = clip.getItemAt(0).coerceToText(this).toString().trim()
+                if (text.isNotEmpty()) {
+                    val items = loadClipboardItems()
+                    items.remove(text)
+                    items.add(text)
+                    if (items.size > 20) items.removeAt(0)
+                    saveClipboardItems(items)
+                    renderClipboardList()
+                } else {
+                    android.widget.Toast.makeText(this, "Clipboard kosong", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        btnClipboardClear.setOnClickListener {
+            saveClipboardItems(emptyList())
+            renderClipboardList()
+        }
+    }
+
+    // ---------- System tab: info & kontrol sistem ----------
+
+    private var cameraId: String? = null
+    private var flashlightOn = false
+
+    private fun setupSystem(view: View) {
+        val tvBatteryInfo = view.findViewById<TextView>(R.id.tvBatteryInfo)
+        val tvRamInfo = view.findViewById<TextView>(R.id.tvRamInfo)
+
+        fun refreshBatteryAndRam() {
+            val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
+            val pct = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            val isCharging = bm.isCharging
+            tvBatteryInfo.text = if (isCharging) "🔋 Baterai: $pct% (mengisi daya)" else "🔋 Baterai: $pct%"
+
+            val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+            val memInfo = android.app.ActivityManager.MemoryInfo()
+            am.getMemoryInfo(memInfo)
+            val usedMb = (memInfo.totalMem - memInfo.availMem) / (1024 * 1024)
+            val totalMb = memInfo.totalMem / (1024 * 1024)
+            tvRamInfo.text = "🧠 RAM: ${usedMb}MB / ${totalMb}MB terpakai"
+        }
+        refreshBatteryAndRam()
+        scope.launch {
+            while (isActive) {
+                delay(5000)
+                refreshBatteryAndRam()
+            }
+        }
+
+        // --- Volume media ---
+        val tvVolLevel = view.findViewById<TextView>(R.id.tvVolLevel)
+        val btnVolDown = view.findViewById<Button>(R.id.btnVolDown)
+        val btnVolUp = view.findViewById<Button>(R.id.btnVolUp)
+        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+
+        fun refreshVolume() {
+            val cur = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+            val max = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+            tvVolLevel.text = "$cur / $max"
+        }
+        refreshVolume()
+        btnVolDown.setOnClickListener {
+            audioManager.adjustStreamVolume(
+                android.media.AudioManager.STREAM_MUSIC,
+                android.media.AudioManager.ADJUST_LOWER, 0
+            )
+            refreshVolume()
+        }
+        btnVolUp.setOnClickListener {
+            audioManager.adjustStreamVolume(
+                android.media.AudioManager.STREAM_MUSIC,
+                android.media.AudioManager.ADJUST_RAISE, 0
+            )
+            refreshVolume()
+        }
+
+        // --- Brightness (butuh izin Modify System Settings) ---
+        val tvBrightLevel = view.findViewById<TextView>(R.id.tvBrightLevel)
+        val btnBrightDown = view.findViewById<Button>(R.id.btnBrightDown)
+        val btnBrightUp = view.findViewById<Button>(R.id.btnBrightUp)
+
+        fun canWriteSettings() = android.provider.Settings.System.canWrite(this)
+        fun requestWriteSettings() {
+            android.widget.Toast.makeText(this, "Butuh izin \"Modify System Settings\". Membuka Settings...", android.widget.Toast.LENGTH_LONG).show()
+            val intent = Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS, android.net.Uri.parse("package:$packageName"))
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(intent)
+        }
+
+        fun refreshBrightness() {
+            val level = try {
+                android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS)
+            } catch (e: Exception) { -1 }
+            tvBrightLevel.text = if (level >= 0) "$level / 255" else "--"
+        }
+        refreshBrightness()
+
+        fun changeBrightness(delta: Int) {
+            if (!canWriteSettings()) { requestWriteSettings(); return }
+            val current = try {
+                android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS)
+            } catch (e: Exception) { 128 }
+            val newVal = (current + delta).coerceIn(0, 255)
+            android.provider.Settings.System.putInt(contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS, newVal)
+            refreshBrightness()
+        }
+        btnBrightDown.setOnClickListener { changeBrightness(-25) }
+        btnBrightUp.setOnClickListener { changeBrightness(25) }
+
+        // --- Senter ---
+        val btnFlashlight = view.findViewById<Button>(R.id.btnFlashlight)
+        val cameraManager = getSystemService(CAMERA_SERVICE) as android.hardware.camera2.CameraManager
+        if (cameraId == null) {
+            cameraId = try {
+                cameraManager.cameraIdList.firstOrNull { id ->
+                    cameraManager.getCameraCharacteristics(id)
+                        .get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                }
+            } catch (e: Exception) { null }
+        }
+        btnFlashlight.setOnClickListener {
+            val id = cameraId
+            if (id == null) {
+                android.widget.Toast.makeText(this, "Perangkat ini nggak punya flash", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            try {
+                flashlightOn = !flashlightOn
+                cameraManager.setTorchMode(id, flashlightOn)
+                btnFlashlight.text = if (flashlightOn) "🔦 Senter (ON)" else "🔦 Senter"
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(this, "Gagal akses senter: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // --- DND (butuh izin Notification Policy Access) ---
+        val btnDnd = view.findViewById<Button>(R.id.btnDnd)
+        val notificationManager = getSystemService(NotificationManager::class.java)
+
+        fun refreshDndButton() {
+            val isDnd = notificationManager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+            btnDnd.text = if (isDnd) "🔇 DND (ON)" else "🔇 DND"
+        }
+        refreshDndButton()
+        btnDnd.setOnClickListener {
+            if (!notificationManager.isNotificationPolicyAccessGranted) {
+                android.widget.Toast.makeText(this, "Butuh izin \"Notification Policy Access\". Membuka Settings...", android.widget.Toast.LENGTH_LONG).show()
+                val intent = Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(intent)
+                return@setOnClickListener
+            }
+            val isDnd = notificationManager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+            notificationManager.setInterruptionFilter(
+                if (isDnd) NotificationManager.INTERRUPTION_FILTER_ALL
+                else NotificationManager.INTERRUPTION_FILTER_PRIORITY
+            )
+            refreshDndButton()
+        }
+
+        // --- Kunci orientasi layar (butuh izin Modify System Settings) ---
+        val btnOrientationLock = view.findViewById<Button>(R.id.btnOrientationLock)
+        fun refreshOrientationButton() {
+            val autoRotate = try {
+                android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.ACCELEROMETER_ROTATION) == 1
+            } catch (e: Exception) { true }
+            btnOrientationLock.text = if (!autoRotate) "🔒 Rotasi (Terkunci)" else "🔒 Kunci Rotasi"
+        }
+        refreshOrientationButton()
+        btnOrientationLock.setOnClickListener {
+            if (!canWriteSettings()) { requestWriteSettings(); return@setOnClickListener }
+            val autoRotate = try {
+                android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.ACCELEROMETER_ROTATION) == 1
+            } catch (e: Exception) { true }
+            android.provider.Settings.System.putInt(
+                contentResolver, android.provider.Settings.System.ACCELEROMETER_ROTATION,
+                if (autoRotate) 0 else 1
+            )
+            refreshOrientationButton()
+        }
+
+        // --- Kontrol musik (dispatch media key event) ---
+        val btnMusicPrev = view.findViewById<Button>(R.id.btnMusicPrev)
+        val btnMusicPlayPause = view.findViewById<Button>(R.id.btnMusicPlayPause)
+        val btnMusicNext = view.findViewById<Button>(R.id.btnMusicNext)
+
+        fun sendMediaKey(keyCode: Int) {
+            val down = android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode)
+            val up = android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode)
+            audioManager.dispatchMediaKeyEvent(down)
+            audioManager.dispatchMediaKeyEvent(up)
+        }
+        btnMusicPrev.setOnClickListener { sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS) }
+        btnMusicPlayPause.setOnClickListener { sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) }
+        btnMusicNext.setOnClickListener { sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT) }
+
+        // --- Shortcut buka app lain ---
+        fun openApp(packageName: String, label: String) {
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(launchIntent)
+            } else {
+                android.widget.Toast.makeText(this, "$label belum terinstall", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        view.findViewById<Button>(R.id.btnOpenDiscord).setOnClickListener { openApp("com.discord", "Discord") }
+        view.findViewById<Button>(R.id.btnOpenWhatsapp).setOnClickListener { openApp("com.whatsapp", "WhatsApp") }
+        view.findViewById<Button>(R.id.btnOpenBrowser).setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://google.com"))
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(intent)
+        }
+    }
+
+    /** Parser ekspresi aritmatika sederhana: +, -, *, /, tanda kurung. Return null kalau invalid. */
+    private fun evalSimpleExpression(expr: String): Double? {
+        if (expr.isBlank()) return null
+        return try {
+            val pos = intArrayOf(0)
+
+            fun peek(): Char? = if (pos[0] < expr.length) expr[pos[0]] else null
+            fun parseExpr(): Double {
+                var value = parseTerm()
+                while (true) {
+                    when (peek()) {
+                        '+' -> { pos[0]++; value += parseTerm() }
+                        '-' -> { pos[0]++; value -= parseTerm() }
+                        else -> return value
+                    }
+                }
+            }
+            fun parseTerm(): Double {
+                var value = parseFactor()
+                while (true) {
+                    when (peek()) {
+                        '*' -> { pos[0]++; value *= parseFactor() }
+                        '/' -> { pos[0]++; value /= parseFactor() }
+                        else -> return value
+                    }
+                }
+            }
+            fun parseFactor(): Double {
+                if (peek() == '(') {
+                    pos[0]++
+                    val v = parseExpr()
+                    if (peek() == ')') pos[0]++
+                    return v
+                }
+                if (peek() == '-') {
+                    pos[0]++
+                    return -parseFactor()
+                }
+                val start = pos[0]
+                while (peek()?.let { it.isDigit() || it == '.' } == true) pos[0]++
+                if (start == pos[0]) throw NumberFormatException()
+                return expr.substring(start, pos[0]).toDouble()
+            }
+
+            val result = parseExpr()
+            if (pos[0] != expr.length) null else result
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun trimZero(d: Double): String =
+        if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
+
     private fun hasUsageAccessPermission(): Boolean {
         val appOps = getSystemService(APP_OPS_SERVICE) as android.app.AppOpsManager
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -456,6 +878,13 @@ class OverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         job.cancel()
+        if (flashlightOn) {
+            try {
+                cameraId?.let {
+                    (getSystemService(CAMERA_SERVICE) as android.hardware.camera2.CameraManager).setTorchMode(it, false)
+                }
+            } catch (e: Exception) { }
+        }
         bubbleView?.let { runCatching { windowManager.removeView(it) } }
         panelView?.let { runCatching { windowManager.removeView(it) } }
     }
