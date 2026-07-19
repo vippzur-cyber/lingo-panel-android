@@ -64,6 +64,18 @@
             android:textColor="@color/text_muted" />
     </LinearLayout>
 
+    <!-- Konten tab: tinggi tetap + bisa discroll biar ukuran panel konsisten -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="290dp"
+        android:scrollbars="vertical"
+        android:fillViewport="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
     <!-- Translate section -->
     <LinearLayout
         android:id="@+id/sectionTranslate"
@@ -107,15 +119,6 @@
                 android:textSize="12sp"
                 android:completionThreshold="1" />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvDetected"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_muted"
-            android:textSize="10sp"
-            android:layout_marginBottom="6dp"
-            android:text="" />
 
         <EditText
             android:id="@+id/etInput"
@@ -239,6 +242,9 @@
             android:textSize="10sp"
             android:layout_marginTop="6dp" />
     </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
 
     <Button
         android:id="@+id/btnMatikanPanel"
