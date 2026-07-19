@@ -26,27 +26,6 @@
             android:textSize="14sp" />
 
         <TextView
-            android:id="@+id/btnZoomOut"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="－"
-            android:textColor="@color/text_muted"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:padding="4dp" />
-
-        <TextView
-            android:id="@+id/btnZoomIn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="＋"
-            android:textColor="@color/text_muted"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:padding="4dp"
-            android:layout_marginStart="4dp" />
-
-        <TextView
             android:id="@+id/btnClose"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -57,18 +36,25 @@
             android:layout_marginStart="8dp" />
     </LinearLayout>
 
-    <!-- Tabs -->
-    <LinearLayout
+    <!-- Tabs (scroll horizontal biar muat banyak tab) -->
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:scrollbars="none"
         android:layout_marginBottom="10dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/tabTranslate"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:text="TRANSLATE"
             android:textSize="10sp"
             android:backgroundTint="@color/rose"
@@ -76,20 +62,51 @@
 
         <Button
             android:id="@+id/tabBooster"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:layout_marginStart="6dp"
             android:text="FPS BOOSTER"
             android:textSize="10sp"
             android:backgroundTint="@color/panel_dark"
             android:textColor="@color/text_muted" />
-    </LinearLayout>
 
-    <!-- Konten tab: tinggi tetap + bisa discroll biar ukuran panel konsisten -->
+        <Button
+            android:id="@+id/tabTools"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="6dp"
+            android:text="TOOLS"
+            android:textSize="10sp"
+            android:backgroundTint="@color/panel_dark"
+            android:textColor="@color/text_muted" />
+
+        <Button
+            android:id="@+id/tabSystem"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="6dp"
+            android:text="SYSTEM"
+            android:textSize="10sp"
+            android:backgroundTint="@color/panel_dark"
+            android:textColor="@color/text_muted" />
+
+    </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Konten tab: masing-masing section dikasih minHeight yang sama (lihat sectionTranslate & sectionBooster)
+         biar ukuran panel selalu konsisten pas ganti tab, tanpa nyisain area kosong -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="340dp"
+        android:layout_height="wrap_content"
         android:scrollbars="vertical"
         android:fillViewport="false">
 
@@ -103,6 +120,7 @@
         android:id="@+id/sectionTranslate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="330dp"
         android:orientation="vertical">
 
         <LinearLayout
@@ -188,6 +206,7 @@
             android:layout_marginBottom="4dp">
 
             <TextView
+                android:id="@+id/tvHasilLabel"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -221,6 +240,7 @@
         android:id="@+id/sectionBooster"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="330dp"
         android:orientation="vertical"
         android:visibility="gone">
 
@@ -263,6 +283,491 @@
             android:textColor="@color/text_muted"
             android:textSize="10sp"
             android:layout_marginTop="6dp" />
+    </LinearLayout>
+
+    <!-- Tools section: 5 utilitas ringan -->
+    <LinearLayout
+        android:id="@+id/sectionTools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="330dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- Stopwatch -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="STOPWATCH"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:id="@+id/tvStopwatch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="00:00:00"
+                android:textColor="@color/text_light"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/btnStopwatchToggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mulai"
+                android:textSize="10sp"
+                android:backgroundTint="@color/rose"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnStopwatchReset"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reset"
+                android:textSize="10sp"
+                android:layout_marginStart="4dp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_muted" />
+        </LinearLayout>
+
+        <!-- Quick Notes -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="QUICK NOTES"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="3"
+            android:gravity="top"
+            android:background="@drawable/input_bg"
+            android:padding="8dp"
+            android:hint="Tulis catatan, auto-tersimpan..."
+            android:textColor="@color/text_light"
+            android:textColorHint="@color/text_muted"
+            android:textSize="12sp"
+            android:layout_marginBottom="10dp" />
+
+        <!-- Kalkulator -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="KALKULATOR"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <EditText
+                android:id="@+id/etCalc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="cth: 12*3+4"
+                android:inputType="phone"
+                android:background="@drawable/input_bg"
+                android:padding="8dp"
+                android:textColor="@color/text_light"
+                android:textColorHint="@color/text_muted"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvCalcResult"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="= 0"
+                android:textColor="@color/text_light"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Reminder -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="REMINDER"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etReminderText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Isi pengingat..."
+            android:background="@drawable/input_bg"
+            android:padding="8dp"
+            android:textColor="@color/text_light"
+            android:textColorHint="@color/text_muted"
+            android:textSize="12sp"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <EditText
+                android:id="@+id/etReminderMinutes"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:hint="menit"
+                android:inputType="number"
+                android:background="@drawable/input_bg"
+                android:padding="8dp"
+                android:textColor="@color/text_light"
+                android:textColorHint="@color/text_muted"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnSetReminder"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Pasang Reminder"
+                android:textSize="10sp"
+                android:backgroundTint="@color/rose"
+                android:textColor="@color/text_light" />
+        </LinearLayout>
+
+        <!-- Clipboard Manager -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CLIPBOARD MANAGER"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="6dp">
+
+            <Button
+                android:id="@+id/btnClipboardSave"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Simpan dari Clipboard"
+                android:textSize="10sp"
+                android:backgroundTint="@color/rose"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnClipboardClear"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="Bersihkan"
+                android:textSize="10sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_muted" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/clipboardList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+
+    <!-- System section: info & kontrol sistem -->
+    <LinearLayout
+        android:id="@+id/sectionSystem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="330dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- Baterai & RAM -->
+        <TextView
+            android:id="@+id/tvBatteryInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔋 Baterai: --%"
+            android:textColor="@color/text_light"
+            android:textSize="12sp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvRamInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🧠 RAM: --"
+            android:textColor="@color/text_light"
+            android:textSize="12sp"
+            android:layout_marginBottom="10dp" />
+
+        <!-- Volume -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔊 VOLUME MEDIA"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <Button
+                android:id="@+id/btnVolDown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="－"
+                android:textSize="12sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+
+            <TextView
+                android:id="@+id/tvVolLevel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="--"
+                android:textColor="@color/text_light"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnVolUp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="＋"
+                android:textSize="12sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+        </LinearLayout>
+
+        <!-- Brightness -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💡 BRIGHTNESS"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <Button
+                android:id="@+id/btnBrightDown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="－"
+                android:textSize="12sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+
+            <TextView
+                android:id="@+id/tvBrightLevel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="--"
+                android:textColor="@color/text_light"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnBrightUp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="＋"
+                android:textSize="12sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+        </LinearLayout>
+
+        <!-- Toggle cepat: senter, DND, kunci orientasi -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="TOGGLE CEPAT"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <Button
+                android:id="@+id/btnFlashlight"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🔦 Senter"
+                android:textSize="10sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnDnd"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="🔇 DND"
+                android:textSize="10sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnOrientationLock"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="🔒 Kunci Rotasi"
+                android:textSize="10sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+        </LinearLayout>
+
+        <!-- Kontrol musik -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎵 KONTROL MUSIK"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <Button
+                android:id="@+id/btnMusicPrev"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⏮"
+                android:textSize="12sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnMusicPlayPause"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="⏯"
+                android:textSize="12sp"
+                android:backgroundTint="@color/rose"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnMusicNext"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="⏭"
+                android:textSize="12sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+        </LinearLayout>
+
+        <!-- Shortcut buka app lain -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎮 SHORTCUT APP"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnOpenDiscord"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Discord"
+                android:textSize="10sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnOpenWhatsapp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="WhatsApp"
+                android:textSize="10sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+
+            <Button
+                android:id="@+id/btnOpenBrowser"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="Browser"
+                android:textSize="10sp"
+                android:backgroundTint="@color/panel_dark"
+                android:textColor="@color/text_light" />
+        </LinearLayout>
+
     </LinearLayout>
 
         </LinearLayout>
