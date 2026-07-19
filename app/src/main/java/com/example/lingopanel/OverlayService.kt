@@ -166,7 +166,6 @@ class OverlayService : Service() {
     private fun setupPanel(view: View) {
         val acSource = view.findViewById<AutoCompleteTextView>(R.id.acSource)
         val acTarget = view.findViewById<AutoCompleteTextView>(R.id.acTarget)
-        val tvDetected = view.findViewById<TextView>(R.id.tvDetected)
         val etInput = view.findViewById<EditText>(R.id.etInput)
         val tvOutput = view.findViewById<TextView>(R.id.tvOutput)
         val btnTranslate = view.findViewById<Button>(R.id.btnTranslate)
@@ -222,8 +221,8 @@ class OverlayService : Service() {
         acSource.setAdapter(sourceAdapter)
         acTarget.setAdapter(targetAdapter)
 
-        // Default: sumber "Deteksi Otomatis", target "Inggris"
-        acSource.setText(Languages.SOURCE_OPTIONS.first { it.code == "auto" }.label, false)
+        // Default: sumber "Indonesia", target "Inggris"
+        acSource.setText(Languages.SOURCE_OPTIONS.first { it.code == "id" }.label, false)
         acTarget.setText(Languages.TARGET_OPTIONS.first { it.code == "en" }.label, false)
 
         // Buka daftar lagi begitu field difokus/diketik, biar bisa langsung search
@@ -288,22 +287,10 @@ class OverlayService : Service() {
             btnTranslate.isEnabled = false
             btnTranslate.text = "Menerjemahkan..."
             pbLoading.visibility = View.VISIBLE
-            tvDetected.text = ""
 
             scope.launch {
                 try {
-                    var actualSource = sourceLang.code
-                    if (sourceLang.code == "auto") {
-                        try {
-                            actualSource = TranslateApi.detectLanguage(text)
-                            val label = Languages.ALL.find { it.code == actualSource }?.label ?: actualSource
-                            tvDetected.text = "Terdeteksi: $label"
-                        } catch (e: Exception) {
-                            actualSource = "en"
-                            tvDetected.text = "Deteksi gagal, pakai default Inggris"
-                        }
-                    }
-                    val result = TranslateApi.translate(text, actualSource, targetLang.code)
+                    val result = TranslateApi.translate(text, sourceLang.code, targetLang.code)
                     tvOutput.text = result
                 } catch (e: Exception) {
                     tvOutput.text = "Gagal menerjemahkan: ${e.message}"

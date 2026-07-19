@@ -3,9 +3,7 @@ package com.example.lingopanel
 data class Lang(val code: String, val label: String)
 
 object Languages {
-    // "auto" khusus buat opsi Deteksi Otomatis di sisi bahasa sumber
     val ALL = listOf(
-        Lang("auto", "Deteksi Otomatis"),
         Lang("id", "Indonesia"),
         Lang("en", "Inggris"),
         Lang("ja", "Jepang"),
@@ -38,7 +36,6 @@ object Languages {
         Lang("my", "Burma")
     )
 
-    // Sumber: termasuk opsi "auto". Target: tidak termasuk "auto".
     val SOURCE_OPTIONS = ALL
-    val TARGET_OPTIONS = ALL.filter { it.code != "auto" }
+    val TARGET_OPTIONS = ALL
 }
