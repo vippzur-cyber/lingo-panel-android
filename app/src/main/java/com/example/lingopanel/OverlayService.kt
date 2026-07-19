@@ -777,7 +777,7 @@ class OverlayService : Service() {
 
         // ---------- Info & Jaringan: tombol ON/OFF ----------
         val btnToggleBattery = view.findViewById<Button>(R.id.btnToggleBattery)
-        val tvBatteryInfo = view.findViewById<TextView>(R.id.tvBatteryInfo)
+        val tvBatteryToggleInfo = view.findViewById<TextView>(R.id.tvBatteryToggleInfo)
         val btnToggleWifi = view.findViewById<Button>(R.id.btnToggleWifi)
         val tvWifiInfo = view.findViewById<TextView>(R.id.tvWifiInfo)
         val btnToggleIp = view.findViewById<Button>(R.id.btnToggleIp)
@@ -793,20 +793,20 @@ class OverlayService : Service() {
         btnToggleBattery.setOnClickListener {
             if (batteryJob == null) {
                 setToggleOn(btnToggleBattery, true, "🔋 Baterai %")
-                tvBatteryInfo.visibility = View.VISIBLE
+                tvBatteryToggleInfo.visibility = View.VISIBLE
                 batteryJob = scope.launch {
                     while (isActive) {
                         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
                         val level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
                         val charging = bm.isCharging
-                        tvBatteryInfo.text = "$level%${if (charging) " (sedang charging)" else ""}"
+                        tvBatteryToggleInfo.text = "$level%${if (charging) " (sedang charging)" else ""}"
                         delay(5000)
                     }
                 }
             } else {
                 batteryJob?.cancel(); batteryJob = null
                 setToggleOn(btnToggleBattery, false, "🔋 Baterai %")
-                tvBatteryInfo.visibility = View.GONE
+                tvBatteryToggleInfo.visibility = View.GONE
             }
         }
 
