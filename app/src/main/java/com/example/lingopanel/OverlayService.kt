@@ -769,7 +769,7 @@ class OverlayService : Service() {
 
         // ---------- Info & Jaringan: tombol ON/OFF ----------
         val btnToggleBattery = view.findViewById<Button>(R.id.btnToggleBattery)
-        val tvBatteryInfo = view.findViewById<TextView>(R.id.tvBatteryInfo)
+        val tvBatteryDetails = view.findViewById<TextView>(R.id.tvBatteryDetails)
         val btnToggleWifi = view.findViewById<Button>(R.id.btnToggleWifi)
         val tvWifiInfo = view.findViewById<TextView>(R.id.tvWifiInfo)
         val btnToggleIp = view.findViewById<Button>(R.id.btnToggleIp)
@@ -783,7 +783,7 @@ class OverlayService : Service() {
 
         fun setToggleOn(btn: Button, on: Boolean, label: String) {
             btn.text = if (on) "$label (ON)" else label
-            btn.backgroundTint = android.content.res.ColorStateList.valueOf(
+            btn.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 resources.getColor(if (on) R.color.rose else R.color.panel_dark, theme)
             )
         }
@@ -792,20 +792,20 @@ class OverlayService : Service() {
         btnToggleBattery.setOnClickListener {
             if (batteryJob == null) {
                 setToggleOn(btnToggleBattery, true, "🔋 Baterai %")
-                tvBatteryInfo.visibility = View.VISIBLE
+                tvBatteryDetails.visibility = View.VISIBLE
                 batteryJob = scope.launch {
                     while (isActive) {
                         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
                         val level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
                         val charging = bm.isCharging
-                        tvBatteryInfo.text = "$level%${if (charging) " (sedang charging)" else ""}"
+                        tvBatteryDetails.text = "$level%${if (charging) " (sedang charging)" else ""}"
                         delay(5000)
                     }
                 }
             } else {
                 batteryJob?.cancel(); batteryJob = null
                 setToggleOn(btnToggleBattery, false, "🔋 Baterai %")
-                tvBatteryInfo.visibility = View.GONE
+                tvBatteryDetails.visibility = View.GONE
             }
         }
 
