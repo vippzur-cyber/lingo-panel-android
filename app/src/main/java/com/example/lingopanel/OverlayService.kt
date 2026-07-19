@@ -775,50 +775,53 @@ class OverlayService : Service() {
         if (expr.isBlank()) return null
         return try {
             val pos = intArrayOf(0)
-
-            fun peek(): Char? = if (pos[0] < expr.length) expr[pos[0]] else null
-            fun parseExpr(): Double {
-                var value = parseTerm()
-                while (true) {
-                    when (peek()) {
-                        '+' -> { pos[0]++; value += parseTerm() }
-                        '-' -> { pos[0]++; value -= parseTerm() }
-                        else -> return value
-                    }
-                }
-            }
-            fun parseTerm(): Double {
-                var value = parseFactor()
-                while (true) {
-                    when (peek()) {
-                        '*' -> { pos[0]++; value *= parseFactor() }
-                        '/' -> { pos[0]++; value /= parseFactor() }
-                        else -> return value
-                    }
-                }
-            }
-            fun parseFactor(): Double {
-                if (peek() == '(') {
-                    pos[0]++
-                    val v = parseExpr()
-                    if (peek() == ')') pos[0]++
-                    return v
-                }
-                if (peek() == '-') {
-                    pos[0]++
-                    return -parseFactor()
-                }
-                val start = pos[0]
-                while (peek()?.let { it.isDigit() || it == '.' } == true) pos[0]++
-                if (start == pos[0]) throw NumberFormatException()
-                return expr.substring(start, pos[0]).toDouble()
-            }
-
-            val result = parseExpr()
+            val result = calcParseExpr(expr, pos)
             if (pos[0] != expr.length) null else result
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun calcPeek(expr: String, pos: IntArray): Char? =
+        if (pos[0] < expr.length) expr[pos[0]] else null
+
+    private fun calcParseExpr(expr: String, pos: IntArray): Double {
+        var value = calcParseTerm(expr, pos)
+        while (true) {
+            when (calcPeek(expr, pos)) {
+                '+' -> { pos[0]++; value += calcParseTerm(expr, pos) }
+                '-' -> { pos[0]++; value -= calcParseTerm(expr, pos) }
+                else -> return value
+            }
+        }
+    }
+
+    private fun calcParseTerm(expr: String, pos: IntArray): Double {
+        var value = calcParseFactor(expr, pos)
+        while (true) {
+            when (calcPeek(expr, pos)) {
+                '*' -> { pos[0]++; value *= calcParseFactor(expr, pos) }
+                '/' -> { pos[0]++; value /= calcParseFactor(expr, pos) }
+                else -> return value
+            }
+        }
+    }
+
+    private fun calcParseFactor(expr: String, pos: IntArray): Double {
+        if (calcPeek(expr, pos) == '(') {
+            pos[0]++
+            val v = calcParseExpr(expr, pos)
+            if (calcPeek(expr, pos) == ')') pos[0]++
+            return v
+        }
+        if (calcPeek(expr, pos) == '-') {
+            pos[0]++
+            return -calcParseFactor(expr, pos)
+        }
+        val start = pos[0]
+        while (calcPeek(expr, pos)?.let { it.isDigit() || it == '.' } == true) pos[0]++
+        if (start == pos[0]) throw NumberFormatException()
+        return expr.substring(start, pos[0]).toDouble()
     }
 
     private fun trimZero(d: Double): String =
