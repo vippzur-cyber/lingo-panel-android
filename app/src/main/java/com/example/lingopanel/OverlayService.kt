@@ -30,6 +30,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 class OverlayService : Service() {
@@ -456,31 +457,28 @@ class OverlayService : Service() {
         }
         if (stopwatchRunning) startStopwatch()
 
-        // --- 2) Quick Notes (auto-save ke SharedPreferences) ---
+        // --- 2) Quick Notes (mode edit eksplisit lewat ikon ✎ dan 💾) ---
         val etNotes = view.findViewById<EditText>(R.id.etNotes)
+        val btnEditNotes = view.findViewById<TextView>(R.id.btnEditNotes)
+        val btnSaveNotes = view.findViewById<TextView>(R.id.btnSaveNotes)
         etNotes.setText(prefs.getString("quick_notes", ""))
-        etNotes.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                prefs.edit().putString("quick_notes", s?.toString() ?: "").apply()
-            }
-        })
+        etNotes.isEnabled = false
+        btnSaveNotes.alpha = 0.4f
 
-        // --- 3) Kalkulator mini (parser +,-,*,/ tanpa library eksternal) ---
-        val etCalc = view.findViewById<EditText>(R.id.etCalc)
-        val tvCalcResult = view.findViewById<TextView>(R.id.tvCalcResult)
-        etCalc.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val expr = s?.toString().orEmpty()
-                val result = evalSimpleExpression(expr)
-                tvCalcResult.text = if (result != null) "= ${trimZero(result)}" else "= ?"
-            }
-        })
+        btnEditNotes.setOnClickListener {
+            etNotes.isEnabled = true
+            etNotes.requestFocus()
+            btnSaveNotes.alpha = 1f
+        }
 
-        // --- 4) Reminder (AlarmManager, tetap jalan walau app ditutup) ---
+        btnSaveNotes.setOnClickListener {
+            prefs.edit().putString("quick_notes", etNotes.text.toString()).apply()
+            etNotes.isEnabled = false
+            btnSaveNotes.alpha = 0.4f
+            android.widget.Toast.makeText(this, "Catatan disimpan", android.widget.Toast.LENGTH_SHORT).show()
+        }
+
+        // --- 3) Reminder (AlarmManager, tetap jalan walau app ditutup) ---
         val etReminderText = view.findViewById<EditText>(R.id.etReminderText)
         val etReminderMinutes = view.findViewById<EditText>(R.id.etReminderMinutes)
         val btnSetReminder = view.findViewById<Button>(R.id.btnSetReminder)
@@ -768,64 +766,127 @@ class OverlayService : Service() {
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
         }
-    }
 
-    /** Parser ekspresi aritmatika sederhana: +, -, *, /, tanda kurung. Return null kalau invalid. */
-    private fun evalSimpleExpression(expr: String): Double? {
-        if (expr.isBlank()) return null
-        return try {
-            val pos = intArrayOf(0)
-            val result = calcParseExpr(expr, pos)
-            if (pos[0] != expr.length) null else result
-        } catch (e: Exception) {
-            null
+        // ---------- Info & Jaringan: tombol ON/OFF ----------
+        val btnToggleBattery = view.findViewById<Button>(R.id.btnToggleBattery)
+        val tvBatteryInfo = view.findViewById<TextView>(R.id.tvBatteryInfo)
+        val btnToggleWifi = view.findViewById<Button>(R.id.btnToggleWifi)
+        val tvWifiInfo = view.findViewById<TextView>(R.id.tvWifiInfo)
+        val btnToggleIp = view.findViewById<Button>(R.id.btnToggleIp)
+        val tvIpInfo = view.findViewById<TextView>(R.id.tvIpInfo)
+        val btnTogglePing = view.findViewById<Button>(R.id.btnTogglePing)
+        val tvPingInfo = view.findViewById<TextView>(R.id.tvPingInfo)
+
+        var batteryJob: kotlinx.coroutines.Job? = null
+        var wifiJob: kotlinx.coroutines.Job? = null
+        var pingJob: kotlinx.coroutines.Job? = null
+
+        fun setToggleOn(btn: Button, on: Boolean, label: String) {
+            btn.text = if (on) "$label (ON)" else label
+            btn.backgroundTint = android.content.res.ColorStateList.valueOf(
+                resources.getColor(if (on) R.color.rose else R.color.panel_dark, theme)
+            )
         }
-    }
 
-    private fun calcPeek(expr: String, pos: IntArray): Char? =
-        if (pos[0] < expr.length) expr[pos[0]] else null
+        // --- Baterai % (live, update tiap 5 detik) ---
+        btnToggleBattery.setOnClickListener {
+            if (batteryJob == null) {
+                setToggleOn(btnToggleBattery, true, "🔋 Baterai %")
+                tvBatteryInfo.visibility = View.VISIBLE
+                batteryJob = scope.launch {
+                    while (isActive) {
+                        val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
+                        val level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                        val charging = bm.isCharging
+                        tvBatteryInfo.text = "$level%${if (charging) " (sedang charging)" else ""}"
+                        delay(5000)
+                    }
+                }
+            } else {
+                batteryJob?.cancel(); batteryJob = null
+                setToggleOn(btnToggleBattery, false, "🔋 Baterai %")
+                tvBatteryInfo.visibility = View.GONE
+            }
+        }
 
-    private fun calcParseExpr(expr: String, pos: IntArray): Double {
-        var value = calcParseTerm(expr, pos)
-        while (true) {
-            when (calcPeek(expr, pos)) {
-                '+' -> { pos[0]++; value += calcParseTerm(expr, pos) }
-                '-' -> { pos[0]++; value -= calcParseTerm(expr, pos) }
-                else -> return value
+        // --- WiFi Info (live, update tiap 5 detik) ---
+        btnToggleWifi.setOnClickListener {
+            if (wifiJob == null) {
+                setToggleOn(btnToggleWifi, true, "📶 WiFi Info")
+                tvWifiInfo.visibility = View.VISIBLE
+                wifiJob = scope.launch {
+                    while (isActive) {
+                        try {
+                            val wm = applicationContext.getSystemService(WIFI_SERVICE) as android.net.wifi.WifiManager
+                            val info = wm.connectionInfo
+                            val ip = info.ipAddress
+                            val ipStr = "${ip and 0xff}.${(ip shr 8) and 0xff}.${(ip shr 16) and 0xff}.${(ip shr 24) and 0xff}"
+                            tvWifiInfo.text = "SSID: ${info.ssid}\nIP: $ipStr\nSinyal: ${info.rssi} dBm\nKecepatan: ${info.linkSpeed} Mbps"
+                        } catch (e: Exception) {
+                            tvWifiInfo.text = "Tidak terhubung WiFi / gagal baca info"
+                        }
+                        delay(5000)
+                    }
+                }
+            } else {
+                wifiJob?.cancel(); wifiJob = null
+                setToggleOn(btnToggleWifi, false, "📶 WiFi Info")
+                tvWifiInfo.visibility = View.GONE
+            }
+        }
+
+        // --- Cek IP (sekali cek, tampilkan semua IP lokal perangkat) ---
+        btnToggleIp.setOnClickListener {
+            if (tvIpInfo.visibility != View.VISIBLE) {
+                setToggleOn(btnToggleIp, true, "🌐 Cek IP")
+                val sb = StringBuilder()
+                try {
+                    val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+                    for (iface in interfaces) {
+                        for (addr in iface.inetAddresses) {
+                            if (!addr.isLoopbackAddress && addr is java.net.Inet4Address) {
+                                sb.append("${iface.displayName}: ${addr.hostAddress}\n")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    sb.append("Gagal membaca alamat IP")
+                }
+                tvIpInfo.text = if (sb.isEmpty()) "Tidak ada koneksi aktif" else sb.toString().trim()
+                tvIpInfo.visibility = View.VISIBLE
+            } else {
+                setToggleOn(btnToggleIp, false, "🌐 Cek IP")
+                tvIpInfo.visibility = View.GONE
+            }
+        }
+
+        // --- Ping Test (live, ping ke 8.8.8.8 tiap 2 detik) ---
+        btnTogglePing.setOnClickListener {
+            if (pingJob == null) {
+                setToggleOn(btnTogglePing, true, "📡 Ping Test")
+                tvPingInfo.visibility = View.VISIBLE
+                pingJob = scope.launch {
+                    while (isActive) {
+                        val ms = withContext(Dispatchers.IO) {
+                            try {
+                                val start = System.currentTimeMillis()
+                                val reachable = java.net.InetAddress.getByName("8.8.8.8").isReachable(1500)
+                                if (reachable) System.currentTimeMillis() - start else -1L
+                            } catch (e: Exception) {
+                                -1L
+                            }
+                        }
+                        tvPingInfo.text = if (ms >= 0) "$ms ms" else "Timeout / tidak ada koneksi"
+                        delay(2000)
+                    }
+                }
+            } else {
+                pingJob?.cancel(); pingJob = null
+                setToggleOn(btnTogglePing, false, "📡 Ping Test")
+                tvPingInfo.visibility = View.GONE
             }
         }
     }
-
-    private fun calcParseTerm(expr: String, pos: IntArray): Double {
-        var value = calcParseFactor(expr, pos)
-        while (true) {
-            when (calcPeek(expr, pos)) {
-                '*' -> { pos[0]++; value *= calcParseFactor(expr, pos) }
-                '/' -> { pos[0]++; value /= calcParseFactor(expr, pos) }
-                else -> return value
-            }
-        }
-    }
-
-    private fun calcParseFactor(expr: String, pos: IntArray): Double {
-        if (calcPeek(expr, pos) == '(') {
-            pos[0]++
-            val v = calcParseExpr(expr, pos)
-            if (calcPeek(expr, pos) == ')') pos[0]++
-            return v
-        }
-        if (calcPeek(expr, pos) == '-') {
-            pos[0]++
-            return -calcParseFactor(expr, pos)
-        }
-        val start = pos[0]
-        while (calcPeek(expr, pos)?.let { it.isDigit() || it == '.' } == true) pos[0]++
-        if (start == pos[0]) throw NumberFormatException()
-        return expr.substring(start, pos[0]).toDouble()
-    }
-
-    private fun trimZero(d: Double): String =
-        if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
 
     private fun hasUsageAccessPermission(): Boolean {
         val appOps = getSystemService(APP_OPS_SERVICE) as android.app.AppOpsManager
