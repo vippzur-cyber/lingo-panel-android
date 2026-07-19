@@ -171,6 +171,14 @@ class OverlayService : Service() {
         windowManager.addView(view, params)
     }
 
+    /** Helper dipake di semua tombol on/off (Senter, DND, Rotasi, Stopwatch, Info Jaringan) */
+    private fun setToggleOn(btn: Button, on: Boolean, label: String) {
+        btn.text = if (on) "$label (ON)" else label
+        btn.backgroundTint = android.content.res.ColorStateList.valueOf(
+            resources.getColor(if (on) R.color.rose else R.color.panel_dark, theme)
+        )
+    }
+
     private fun setupPanel(view: View) {
         val acSource = view.findViewById<AutoCompleteTextView>(R.id.acSource)
         val acTarget = view.findViewById<AutoCompleteTextView>(R.id.acTarget)
@@ -424,11 +432,11 @@ class OverlayService : Service() {
             return "%02d:%02d:%02d".format(h, m, s)
         }
         tvStopwatch.text = formatStopwatch(stopwatchSeconds)
-        btnStopwatchToggle.text = if (stopwatchRunning) "Jeda" else "Mulai"
+        setToggleOn(btnStopwatchToggle, stopwatchRunning, "▶ Mulai")
 
         fun startStopwatch() {
             stopwatchRunning = true
-            btnStopwatchToggle.text = "Jeda"
+            setToggleOn(btnStopwatchToggle, true, "▶ Mulai")
             stopwatchJob?.cancel()
             stopwatchJob = scope.launch {
                 while (isActive) {
@@ -443,7 +451,7 @@ class OverlayService : Service() {
             if (stopwatchRunning) {
                 stopwatchRunning = false
                 stopwatchJob?.cancel()
-                btnStopwatchToggle.text = "Mulai"
+                setToggleOn(btnStopwatchToggle, false, "▶ Mulai")
             } else {
                 startStopwatch()
             }
@@ -682,7 +690,7 @@ class OverlayService : Service() {
             try {
                 flashlightOn = !flashlightOn
                 cameraManager.setTorchMode(id, flashlightOn)
-                btnFlashlight.text = if (flashlightOn) "🔦 Senter (ON)" else "🔦 Senter"
+                setToggleOn(btnFlashlight, flashlightOn, "🔦 Senter")
             } catch (e: Exception) {
                 android.widget.Toast.makeText(this, "Gagal akses senter: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
             }
@@ -694,7 +702,7 @@ class OverlayService : Service() {
 
         fun refreshDndButton() {
             val isDnd = notificationManager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
-            btnDnd.text = if (isDnd) "🔇 DND (ON)" else "🔇 DND"
+            setToggleOn(btnDnd, isDnd, "🔇 DND")
         }
         refreshDndButton()
         btnDnd.setOnClickListener {
@@ -719,7 +727,7 @@ class OverlayService : Service() {
             val autoRotate = try {
                 android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.ACCELEROMETER_ROTATION) == 1
             } catch (e: Exception) { true }
-            btnOrientationLock.text = if (!autoRotate) "🔒 Rotasi (Terkunci)" else "🔒 Kunci Rotasi"
+            setToggleOn(btnOrientationLock, !autoRotate, "🔒 Kunci Rotasi")
         }
         refreshOrientationButton()
         btnOrientationLock.setOnClickListener {
@@ -769,7 +777,7 @@ class OverlayService : Service() {
 
         // ---------- Info & Jaringan: tombol ON/OFF ----------
         val btnToggleBattery = view.findViewById<Button>(R.id.btnToggleBattery)
-        val tvBatteryDetails = view.findViewById<TextView>(R.id.tvBatteryDetails)
+        val tvBatteryInfo = view.findViewById<TextView>(R.id.tvBatteryInfo)
         val btnToggleWifi = view.findViewById<Button>(R.id.btnToggleWifi)
         val tvWifiInfo = view.findViewById<TextView>(R.id.tvWifiInfo)
         val btnToggleIp = view.findViewById<Button>(R.id.btnToggleIp)
@@ -781,31 +789,24 @@ class OverlayService : Service() {
         var wifiJob: kotlinx.coroutines.Job? = null
         var pingJob: kotlinx.coroutines.Job? = null
 
-        fun setToggleOn(btn: Button, on: Boolean, label: String) {
-            btn.text = if (on) "$label (ON)" else label
-            btn.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                resources.getColor(if (on) R.color.rose else R.color.panel_dark, theme)
-            )
-        }
-
         // --- Baterai % (live, update tiap 5 detik) ---
         btnToggleBattery.setOnClickListener {
             if (batteryJob == null) {
                 setToggleOn(btnToggleBattery, true, "🔋 Baterai %")
-                tvBatteryDetails.visibility = View.VISIBLE
+                tvBatteryInfo.visibility = View.VISIBLE
                 batteryJob = scope.launch {
                     while (isActive) {
                         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
                         val level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
                         val charging = bm.isCharging
-                        tvBatteryDetails.text = "$level%${if (charging) " (sedang charging)" else ""}"
+                        tvBatteryInfo.text = "$level%${if (charging) " (sedang charging)" else ""}"
                         delay(5000)
                     }
                 }
             } else {
                 batteryJob?.cancel(); batteryJob = null
                 setToggleOn(btnToggleBattery, false, "🔋 Baterai %")
-                tvBatteryDetails.visibility = View.GONE
+                tvBatteryInfo.visibility = View.GONE
             }
         }
 
