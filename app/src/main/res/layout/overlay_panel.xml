@@ -341,14 +341,40 @@
         </LinearLayout>
 
         <!-- Quick Notes -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="QUICK NOTES"
-            android:textColor="@color/rose"
-            android:textStyle="bold"
-            android:textSize="11sp"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="QUICK NOTES"
+                android:textColor="@color/rose"
+                android:textStyle="bold"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/btnEditNotes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✎"
+                android:textColor="@color/text_light"
+                android:textSize="15sp"
+                android:padding="4dp" />
+
+            <TextView
+                android:id="@+id/btnSaveNotes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💾"
+                android:textSize="15sp"
+                android:padding="4dp"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
 
         <EditText
             android:id="@+id/etNotes"
@@ -358,51 +384,12 @@
             android:gravity="top"
             android:background="@drawable/input_bg"
             android:padding="8dp"
-            android:hint="Tulis catatan, auto-tersimpan..."
+            android:hint="Tap ikon pensil buat mulai nulis..."
             android:textColor="@color/text_light"
             android:textColorHint="@color/text_muted"
             android:textSize="12sp"
+            android:enabled="false"
             android:layout_marginBottom="10dp" />
-
-        <!-- Kalkulator -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="KALKULATOR"
-            android:textColor="@color/rose"
-            android:textStyle="bold"
-            android:textSize="11sp"
-            android:layout_marginBottom="4dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="10dp">
-
-            <EditText
-                android:id="@+id/etCalc"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="cth: 12*3+4"
-                android:inputType="phone"
-                android:background="@drawable/input_bg"
-                android:padding="8dp"
-                android:textColor="@color/text_light"
-                android:textColorHint="@color/text_muted"
-                android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/tvCalcResult"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="= 0"
-                android:textColor="@color/text_light"
-                android:textSize="13sp" />
-        </LinearLayout>
 
         <!-- Reminder -->
         <TextView
@@ -767,6 +754,99 @@
                 android:backgroundTint="@color/panel_dark"
                 android:textColor="@color/text_light" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="INFO &amp; JARINGAN"
+            android:textColor="@color/rose"
+            android:textStyle="bold"
+            android:textSize="11sp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="4dp" />
+
+        <Button
+            android:id="@+id/btnToggleBattery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔋 Baterai %"
+            android:textSize="11sp"
+            android:backgroundTint="@color/panel_dark"
+            android:textColor="@color/text_light"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvBatteryInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:padding="4dp"
+            android:visibility="gone"
+            android:layout_marginBottom="6dp" />
+
+        <Button
+            android:id="@+id/btnToggleWifi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📶 WiFi Info"
+            android:textSize="11sp"
+            android:backgroundTint="@color/panel_dark"
+            android:textColor="@color/text_light"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvWifiInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:padding="4dp"
+            android:visibility="gone"
+            android:layout_marginBottom="6dp" />
+
+        <Button
+            android:id="@+id/btnToggleIp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🌐 Cek IP"
+            android:textSize="11sp"
+            android:backgroundTint="@color/panel_dark"
+            android:textColor="@color/text_light"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvIpInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:padding="4dp"
+            android:visibility="gone"
+            android:layout_marginBottom="6dp" />
+
+        <Button
+            android:id="@+id/btnTogglePing"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📡 Ping Test"
+            android:textSize="11sp"
+            android:backgroundTint="@color/panel_dark"
+            android:textColor="@color/text_light"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvPingInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:padding="4dp"
+            android:visibility="gone" />
 
     </LinearLayout>
 
