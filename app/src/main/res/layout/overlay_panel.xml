@@ -130,14 +130,55 @@
             android:hint="Tulis teks di sini..."
             android:layout_marginBottom="8dp" />
 
-        <Button
-            android:id="@+id/btnTranslate"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Terjemahkan"
-            android:backgroundTint="@color/rose"
-            android:textColor="@color/text_light"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/btnTranslate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Terjemahkan"
+                android:backgroundTint="@color/rose"
+                android:textColor="@color/text_light" />
+
+            <ProgressBar
+                android:id="@+id/pbLoading"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="10dp"
+                android:visibility="gone"
+                android:indeterminateTint="@color/rose" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Hasil"
+                android:textColor="@color/text_muted"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/btnCopy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Salin"
+                android:textColor="@color/rose"
+                android:textSize="11sp"
+                android:padding="4dp" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvOutput"
