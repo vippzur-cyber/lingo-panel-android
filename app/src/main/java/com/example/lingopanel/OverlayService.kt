@@ -174,7 +174,7 @@ class OverlayService : Service() {
     /** Helper dipake di semua tombol on/off (Senter, DND, Rotasi, Stopwatch, Info Jaringan) */
     private fun setToggleOn(btn: Button, on: Boolean, label: String) {
         btn.text = if (on) "$label (ON)" else label
-        btn.backgroundTint = android.content.res.ColorStateList.valueOf(
+        btn.backgroundTintList = android.content.res.ColorStateList.valueOf(
             resources.getColor(if (on) R.color.rose else R.color.panel_dark, theme)
         )
     }
