@@ -26,13 +26,35 @@
             android:textSize="14sp" />
 
         <TextView
+            android:id="@+id/btnZoomOut"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="－"
+            android:textColor="@color/text_muted"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:padding="4dp" />
+
+        <TextView
+            android:id="@+id/btnZoomIn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="＋"
+            android:textColor="@color/text_muted"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:padding="4dp"
+            android:layout_marginStart="4dp" />
+
+        <TextView
             android:id="@+id/btnClose"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="✕"
             android:textColor="@color/text_muted"
             android:textSize="16sp"
-            android:padding="4dp" />
+            android:padding="4dp"
+            android:layout_marginStart="8dp" />
     </LinearLayout>
 
     <!-- Tabs -->
@@ -229,7 +251,7 @@
             android:id="@+id/btnBoost"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Aktifkan Boost"
+            android:text="Jalankan Boost"
             android:backgroundTint="@color/rose"
             android:textColor="@color/text_light"
             android:layout_marginTop="8dp" />
@@ -237,7 +259,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Simulasi tampilan saja — tidak mengubah performa perangkat sungguhan."
+            android:text="Boost ini beneran menutup proses background &amp; membersihkan cache aplikasi (butuh izin Akses Penggunaan sekali di awal). Tapi Android sudah cukup efisien mengatur memori sendiri, jadi efeknya ke FPS bisa kecil/tidak terasa."
             android:textColor="@color/text_muted"
             android:textSize="10sp"
             android:layout_marginTop="6dp" />
