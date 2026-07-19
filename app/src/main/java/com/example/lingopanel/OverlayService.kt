@@ -170,6 +170,8 @@ class OverlayService : Service() {
         val etInput = view.findViewById<EditText>(R.id.etInput)
         val tvOutput = view.findViewById<TextView>(R.id.tvOutput)
         val btnTranslate = view.findViewById<Button>(R.id.btnTranslate)
+        val pbLoading = view.findViewById<android.widget.ProgressBar>(R.id.pbLoading)
+        val btnCopy = view.findViewById<TextView>(R.id.btnCopy)
         val btnClose = view.findViewById<TextView>(R.id.btnClose)
         val btnMatikan = view.findViewById<Button>(R.id.btnMatikanPanel)
         val tabTranslate = view.findViewById<Button>(R.id.tabTranslate)
@@ -261,6 +263,16 @@ class OverlayService : Service() {
             btnBoost.text = if (active) "Matikan Boost" else "Aktifkan Boost"
         }
 
+        btnCopy.setOnClickListener {
+            val text = tvOutput.text.toString()
+            if (text.isNotBlank()) {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Hasil terjemahan", text)
+                clipboard.setPrimaryClip(clip)
+                android.widget.Toast.makeText(this, "Disalin ke clipboard", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
         btnTranslate.setOnClickListener {
             val text = etInput.text.toString().trim()
             if (text.isEmpty()) return@setOnClickListener
@@ -275,6 +287,7 @@ class OverlayService : Service() {
 
             btnTranslate.isEnabled = false
             btnTranslate.text = "Menerjemahkan..."
+            pbLoading.visibility = View.VISIBLE
             tvDetected.text = ""
 
             scope.launch {
@@ -297,6 +310,7 @@ class OverlayService : Service() {
                 } finally {
                     btnTranslate.isEnabled = true
                     btnTranslate.text = "Terjemahkan"
+                    pbLoading.visibility = View.GONE
                 }
             }
         }
