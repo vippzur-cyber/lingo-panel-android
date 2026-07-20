@@ -797,6 +797,17 @@
             android:id="@+id/tvBatteryToggleInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:padding="4dp"
+            android:visibility="gone"
+            android:layout_marginBottom="6dp" />
+
+        <Button
+            android:id="@+id/btnToggleWifi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="📶 WiFi Info"
             android:textSize="11sp"
             android:backgroundTint="@color/panel_dark"
